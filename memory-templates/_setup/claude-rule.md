@@ -11,9 +11,10 @@ Memory location: `memory/` or `.memory/` relative to the project root (whichever
 
 1. Read `BRAIN.md` for orientation and active projects list
 2. Read `identity/preferences.md` to understand how the user works
-3. If working on a specific product, read `projects/<product-name>/context.md`
-4. For recent context: read the last 3 days of journal files (YYYY-MM-DD.md) in `journal/<project-name>/`. One file per day — e.g. `2026-03-07.md`, `2026-03-08.md`, `2026-03-09.md`
-5. You may read journal from ANY project and ANY date (`journal/<project-name>/YYYY-MM-DD.md`) when you need historical context for that project
+3. **Determine project:** If `.memory-project` exists in workspace root, read it. Else if `_bmad/bmm/config.yaml` exists, read `project_name` from it. Otherwise use `general`.
+4. Read `projects/<project-name>/context.md` for the determined project
+5. For recent context: read the last 3 days of journal files (YYYY-MM-DD.md) in `journal/<project-name>/`. One file per day — e.g. `2026-03-07.md`, `2026-03-08.md`, `2026-03-09.md`
+6. You may read journal from ANY project and ANY date (`journal/<project-name>/YYYY-MM-DD.md`) when you need historical context for that project
 
 ### During Work
 

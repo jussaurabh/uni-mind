@@ -1,7 +1,11 @@
 #!/bin/zsh
 # Uni-Mind commands
 # Sourced from ~/.zshrc via: source ~/.config/uni-mind/uni-mind-commands.sh
-# Provides: memory-switch, memory-new, memory-reset, link-memory
+# Provides: memory-switch, memory-new, memory-reset, link-memory, memory-set-project
+#
+# BMAD detection: memory-switch, memory-new, memory-reset detect BMAD by walking
+# from cwd upward for _bmad/bmm/config.yaml. link-memory and memory-set-project
+# do not need BMAD (they manage .memory symlink and .memory-project only).
 
 UNI_MIND_CONFIG="${HOME}/.config/uni-mind/config"
 UNI_MIND_ACTIVE="${HOME}/.config/uni-mind/active-project"
@@ -12,10 +16,21 @@ else
   return 1
 fi
 
+# Walk from dir upward; return first dir containing _bmad/bmm/config.yaml
+_find_bmad_hub() {
+  local dir="$1"
+  dir="$(cd "$dir" 2>/dev/null && pwd -P)" || return 1
+  while [ -n "$dir" ] && [ "$dir" != "/" ]; do
+    [ -f "$dir/_bmad/bmm/config.yaml" ] && echo "$dir" && return 0
+    dir="${dir:h}"
+  done
+  return 1
+}
+
 # ============================================================
 # memory-switch <project-name>
 # Switch the active project
-# If HUB_PATH is set (e.g. bmad-model), also updates hub config
+# If BMAD hub found (from cwd upward), updates its config
 # ============================================================
 memory-switch() {
   if [ -z "$1" ]; then
@@ -38,20 +53,22 @@ memory-switch() {
 
   echo "$1" > "$UNI_MIND_ACTIVE"
 
-  # If HUB_PATH set and looks like bmad-model, update config
-  if [ -n "${HUB_PATH}" ] && [ -f "${HUB_PATH}/_bmad/bmm/config.yaml" ]; then
-    sed -i '' "s|^planning_artifacts:.*|planning_artifacts: \"{project-root}/$1/planning-artifacts\"|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-    sed -i '' "s|^implementation_artifacts:.*|implementation_artifacts: \"{project-root}/$1/implementation-artifacts\"|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-    sed -i '' "s|^project_knowledge:.*|project_knowledge: \"{project-root}/$1/docs\"|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-    sed -i '' "s|^project_name:.*|project_name: $1|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-  fi
+  # If BMAD hub found (from cwd upward), update its config
+  local hub
+  hub="$(_find_bmad_hub "$(pwd)" 2>/dev/null)" && [ -n "$hub" ] && {
+    sed -i '' "s|^planning_artifacts:.*|planning_artifacts: \"{project-root}/$1/planning-artifacts\"|" "$hub/_bmad/bmm/config.yaml"
+    sed -i '' "s|^implementation_artifacts:.*|implementation_artifacts: \"{project-root}/$1/implementation-artifacts\"|" "$hub/_bmad/bmm/config.yaml"
+    sed -i '' "s|^project_knowledge:.*|project_knowledge: \"{project-root}/$1/docs\"|" "$hub/_bmad/bmm/config.yaml"
+    sed -i '' "s|^project_name:.*|project_name: $1|" "$hub/_bmad/bmm/config.yaml"
+    echo "  Updated BMAD config at $hub"
+  }
 
   echo "Switched to: $1"
 }
 
 # ============================================================
 # memory-new <project-name>
-# Create a new project in memory (and hub if HUB_PATH set)
+# Create a new project in memory (and hub structure if BMAD found from cwd)
 # ============================================================
 memory-new() {
   if [ -z "$1" ]; then
@@ -98,43 +115,46 @@ TMPL
 <!-- Format: ## YYYY-MM-DD HH:MM: Brief Title -->
 TMPL
 
-  # If HUB_PATH set (bmad-model), create hub structure
-  if [ -n "${HUB_PATH}" ] && [ -d "${HUB_PATH}" ]; then
-    mkdir -p "${HUB_PATH}/$1"/{planning-artifacts,implementation-artifacts,docs}
-  fi
+  # If BMAD hub found (from cwd upward), create hub structure
+  local hub
+  hub="$(_find_bmad_hub "$(pwd)" 2>/dev/null)" && [ -n "$hub" ] && {
+    mkdir -p "$hub/$1"/{planning-artifacts,implementation-artifacts,docs}
+    echo "  Created hub structure at $hub/$1/"
+  }
 
   memory-switch "$1"
   echo "Created project: $1"
   echo "  Memory: $MEMORY_ROOT/projects/$1/"
-  [ -n "${HUB_PATH}" ] && [ -d "${HUB_PATH}" ] && echo "  Hub:    ${HUB_PATH}/$1/"
 }
 
 # ============================================================
 # memory-reset
 # Switch back to general (default lane)
-# If HUB_PATH set, resets hub config to default
+# If BMAD hub found (from cwd), resets its config to default
 # ============================================================
 memory-reset() {
   echo "general" > "$UNI_MIND_ACTIVE"
 
-  if [ -n "${HUB_PATH}" ] && [ -f "${HUB_PATH}/_bmad/bmm/config.yaml" ]; then
-    sed -i '' "s|^planning_artifacts:.*|planning_artifacts: \"{project-root}/_bmad-output/planning-artifacts\"|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-    sed -i '' "s|^implementation_artifacts:.*|implementation_artifacts: \"{project-root}/_bmad-output/implementation-artifacts\"|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-    sed -i '' "s|^project_knowledge:.*|project_knowledge: \"{project-root}/docs\"|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-    sed -i '' "s|^project_name:.*|project_name: default|" "${HUB_PATH}/_bmad/bmm/config.yaml"
-    echo "Reset hub to default output (_bmad-output)"
-  fi
+  local hub
+  hub="$(_find_bmad_hub "$(pwd)" 2>/dev/null)" && [ -n "$hub" ] && {
+    sed -i '' "s|^planning_artifacts:.*|planning_artifacts: \"{project-root}/_bmad-output/planning-artifacts\"|" "$hub/_bmad/bmm/config.yaml"
+    sed -i '' "s|^implementation_artifacts:.*|implementation_artifacts: \"{project-root}/_bmad-output/implementation-artifacts\"|" "$hub/_bmad/bmm/config.yaml"
+    sed -i '' "s|^project_knowledge:.*|project_knowledge: \"{project-root}/docs\"|" "$hub/_bmad/bmm/config.yaml"
+    sed -i '' "s|^project_name:.*|project_name: default|" "$hub/_bmad/bmm/config.yaml"
+    echo "  Reset BMAD config at $hub"
+  }
 
   echo "Switched to: general"
 }
 
 # ============================================================
-# link-memory
+# link-memory [project-name]
 # Link memory into the current folder + install Cursor and Claude rules
-# Run from any project, bmad-model, or other folder
+# Optional: pass project name to set .memory-project (agents use this when BMAD not installed)
 # ============================================================
 link-memory() {
   local cwd="$(pwd)"
+  local project="$1"
 
   if [ -z "$MEMORY_ROOT" ] || [ ! -d "$MEMORY_ROOT" ]; then
     echo "Error: Memory not found at $MEMORY_ROOT"
@@ -148,6 +168,7 @@ link-memory() {
     local mem_abs="$(cd "$MEMORY_ROOT" 2>/dev/null && pwd -P)"
     if [ -n "$target" ] && [ "$target" = "$mem_abs" ]; then
       echo "Memory already linked in this folder: .memory -> $MEMORY_ROOT"
+      [ -n "$project" ] && echo "$project" > "$cwd/.memory-project" && echo "  Set project: $project"
       return 0
     else
       echo "Memory already linked to a different location: .memory -> $target"
@@ -167,12 +188,20 @@ link-memory() {
   ln -s "$MEMORY_ROOT" "$cwd/.memory"
   echo "Linked: .memory -> $MEMORY_ROOT"
 
-  # Update .gitignore
-  if [ -f "$cwd/.gitignore" ]; then
-    grep -q "^\.memory$" "$cwd/.gitignore" 2>/dev/null || echo ".memory" >> "$cwd/.gitignore"
-  else
-    echo ".memory" > "$cwd/.gitignore"
+  # Set project for this folder (agents read .memory-project when BMAD not installed)
+  if [ -n "$project" ]; then
+    echo "$project" > "$cwd/.memory-project"
+    echo "Set project: $project"
   fi
+
+  # Update .gitignore
+  for entry in .memory .memory-project; do
+    if [ -f "$cwd/.gitignore" ]; then
+      grep -q "^${entry}$" "$cwd/.gitignore" 2>/dev/null || echo "$entry" >> "$cwd/.gitignore"
+    else
+      echo "$entry" > "$cwd/.gitignore"
+    fi
+  done
   echo "Updated .gitignore"
 
   # Install Cursor rule
@@ -188,4 +217,26 @@ link-memory() {
   echo ""
   echo "Done. Memory is accessible from this folder."
   echo "Agents will read .memory/BRAIN.md at session start."
+  [ -z "$project" ] && echo "Tip: Run 'link-memory <project>' or 'memory-set-project <project>' to set project for this folder."
+}
+
+# ============================================================
+# memory-set-project <project-name>
+# Set the project for the current folder (writes .memory-project)
+# Agents read this when BMAD is not installed to know which project context to use
+# ============================================================
+memory-set-project() {
+  local cwd="$(pwd)"
+  if [ -z "$1" ]; then
+    echo "Usage: memory-set-project <project-name>"
+    [ -f "$cwd/.memory-project" ] && echo "Current: $(cat "$cwd/.memory-project")"
+    return 1
+  fi
+  if [ ! -d "$cwd/.memory" ] && [ ! -L "$cwd/.memory" ]; then
+    echo "Error: Memory not linked in this folder. Run link-memory first."
+    return 1
+  fi
+  echo "$1" > "$cwd/.memory-project"
+  grep -q "^\.memory-project$" "$cwd/.gitignore" 2>/dev/null || echo ".memory-project" >> "$cwd/.gitignore"
+  echo "Set project for this folder: $1"
 }

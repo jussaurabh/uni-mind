@@ -1,0 +1,57 @@
+---
+description: "Uni-Mind: Shared memory protocol for all BMAD agents"
+alwaysApply: true
+---
+
+## Agent Memory Protocol
+
+You have access to a persistent shared memory system called Uni-Mind.
+Memory location: `memory/` or `.memory/` relative to the project root (whichever exists).
+
+### Session Start
+
+1. Read `BRAIN.md` for orientation and active projects list
+2. Read `identity/preferences.md` to understand how the user works
+3. If working on a specific product, read `projects/<product-name>/context.md`
+4. For recent context: read the last 3 days of journal files (YYYY-MM-DD.md) in `journal/<project-name>/`. One file per day — e.g. `2026-03-07.md`, `2026-03-08.md`, `2026-03-09.md`
+5. You may read journal from ANY project and ANY date (`journal/<project-name>/YYYY-MM-DD.md`) when you need historical context for that project
+
+### During Work
+
+Append to memory when any of these happen:
+
+- A non-obvious decision is made with alternatives considered -> `projects/<project-name>/decisions.md`
+- A new code pattern or convention is established -> `projects/<project-name>/patterns.md`
+- Something fails and gets fixed, or something works unexpectedly well -> `projects/<project-name>/lessons.md`
+- You learn a user preference not yet recorded -> `identity/preferences.md`
+
+### Session End
+
+When the user says "done", "wrap up", "update memory", or "save to memory":
+
+- Append a summary to `journal/<project-name>/YYYY-MM-DD.md` where YYYY-MM-DD is TODAY's date (use `general` if no specific project)
+- Create a NEW file if today's file does not exist — one file per calendar day, never append to yesterday's file
+- Update any project files that gained new knowledge
+
+### Entry Format
+
+All entries in decisions, lessons, and journal use this format (always include time):
+
+```
+## YYYY-MM-DD HH:MM: Brief Title
+- **Context:** What was happening
+- **Detail:** What happened or was decided
+- **Why:** Reasoning (if applicable)
+```
+
+Use the current date AND time (24-hour format) for every entry. Never omit the time.
+
+### Rules
+
+- NEVER delete or overwrite existing entries — always APPEND
+- Keep entries concise (3-5 lines each)
+- Journal: ONE FILE PER DAY. Path = `journal/<project-name>/YYYY-MM-DD.md`. Use TODAY's date. Create the file if it doesn't exist. Never write to yesterday's file — each day gets its own file to avoid long-running files.
+- You may READ `journal/<any-project>/YYYY-MM-DD.md` for any project and any date when looking for historical context.
+- Use the exact folder structure — don't invent new top-level folders
+- If a project folder doesn't exist under `projects/`, create it with `context.md`, `decisions.md`, `patterns.md`, `lessons.md`
+- Read `identity/preferences.md` before making style or tooling choices
